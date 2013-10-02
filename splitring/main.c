@@ -8,11 +8,14 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 #import <Security/Security.h>
+#import <getopt.h>
 
 void SRHandleError(OSStatus status, int requireSuccess);
 char * SRCFStringCopyUTF8String(CFStringRef aString);
-void SRCopyMatchingItemsToKeychain(CFDictionaryRef query, SecKeychainRef keychain);
+void SRCopyKeychainItemsToKeychain(CFArrayRef items, SecKeychainRef keychain);
 void SRListMatchingItems(CFDictionaryRef query);
+void SRListItems(CFArrayRef query);
+CFArrayRef SRCopyItems(CFArrayRef keychains, CFArrayRef classes);
 void SRCopyKeychainItemToKeychain(SecKeychainItemRef item, SecKeychainRef keychain);
 
 int main(int argc, const char * argv[])
@@ -42,22 +45,49 @@ int main(int argc, const char * argv[])
   printf("Default keychain path: %s", defaultKeychainPath);
 
   // Search for all items
-  CFMutableDictionaryRef query = CFDictionaryCreateMutable(NULL, 0,
-                                                           &kCFTypeDictionaryKeyCallBacks,
-                                                           &kCFTypeDictionaryValueCallBacks);
-  CFDictionarySetValue(query, kSecMatchSearchList, keychains);
-  CFDictionarySetValue(query, kSecClass, kSecClassInternetPassword);
-  CFDictionarySetValue(query, kSecReturnRef, kCFBooleanTrue);
-  CFDictionarySetValue(query, kSecReturnAttributes, kCFBooleanTrue);
-  CFDictionarySetValue(query, kSecMatchLimit, kSecMatchLimitAll);
+  CFMutableArrayRef classes = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
+  CFArrayAppendValue(classes, kSecClassGenericPassword);
+  CFArrayAppendValue(classes, kSecClassInternetPassword);
+  //CFArrayAppendValue(classes, kSecClassCertificate);
+  //CFArrayAppendValue(classes, kSecClassIdentity);
+  //CFArrayAppendValue(classes, kSecClassKey);
 
-  SRCopyMatchingItemsToKeychain(query, defaultKeychain);
+  CFArrayRef items = SRCopyItems(keychains, classes);
 
-  CFRelease(query);
+  SRListItems(items);
+  //SRCopyItemsToKeychain(items, defaultKeychain);
+
+  CFRelease(items);
   CFRelease(defaultKeychain);
   CFRelease(keychains);
   CFRelease(keychain);
   return 0;
+}
+
+CFArrayRef SRCopyItems(CFArrayRef keychains, CFArrayRef classes) {
+  CFMutableArrayRef allItems = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
+
+  CFMutableDictionaryRef query = CFDictionaryCreateMutable(NULL, 0,
+                                                           &kCFTypeDictionaryKeyCallBacks,
+                                                           &kCFTypeDictionaryValueCallBacks);
+  CFDictionarySetValue(query, kSecMatchSearchList, keychains);
+  CFDictionarySetValue(query, kSecReturnRef, kCFBooleanTrue);
+  CFDictionarySetValue(query, kSecReturnAttributes, kCFBooleanTrue);
+  CFDictionarySetValue(query, kSecMatchLimit, kSecMatchLimitAll);
+
+  for (int i = 0; i < CFArrayGetCount(classes); i++) {
+    CFTypeRef class = CFArrayGetValueAtIndex(classes, i);
+    CFDictionarySetValue(query, kSecClass, class);
+
+    CFArrayRef items = NULL;
+    OSStatus status = SecItemCopyMatching(query, (CFTypeRef *)&items);
+    SRHandleError(status, true);
+    CFArrayAppendArray(allItems, items, CFRangeMake(0, CFArrayGetCount(items)));
+    CFRelease(items);
+  }
+  CFRelease(query);
+
+  return allItems;
 }
 
 // LEAKS
@@ -79,11 +109,17 @@ char * SRCFStringCopyUTF8String(CFStringRef aString) {
   return NULL;
 }
 
-void SRCopyMatchingItemsToKeychain(CFDictionaryRef query, SecKeychainRef keychain) {
-  CFArrayRef items = NULL;
-  OSStatus status = SecItemCopyMatching(query, (CFTypeRef *)&items);
-  SRHandleError(status, true);
+void SRListItems(CFArrayRef items) {
+  for (int i = 0; i < CFArrayGetCount(items); i++) {
+    CFDictionaryRef info = CFArrayGetValueAtIndex(items, i);
+    CFStringRef label = CFDictionaryGetValue(info, kSecAttrDescription);
 
+    char *cLabel = SRCFStringCopyUTF8String(label);
+    printf("'%s': \n", cLabel);
+  }
+}
+
+void SRCopyMatchingItemsToKeychain(CFArrayRef items, SecKeychainRef keychain) {
   // Copy these items into the provided keychain
   for (int i = 0; i < CFArrayGetCount(items); i++) {
     CFDictionaryRef info = CFArrayGetValueAtIndex(items, i);
@@ -96,8 +132,6 @@ void SRCopyMatchingItemsToKeychain(CFDictionaryRef query, SecKeychainRef keychai
     SRCopyKeychainItemToKeychain(item, keychain);
     printf("%li items to go.\n", CFArrayGetCount(items) - i - 1);
   }
-
-  CFRelease(items);
 }
 
 void SRCopyKeychainItemToKeychain(SecKeychainItemRef item, SecKeychainRef keychain) {
