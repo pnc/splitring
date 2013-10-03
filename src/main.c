@@ -123,7 +123,7 @@ int main(int argc, char * const argv[]) {
 }
 
 void SRPrintUsage() {
-  fprintf(stderr, "usage: splitring [--verbose] [--dry-run] [--to-keychain=<path>] keychain-file ...");
+  fprintf(stderr, "usage: splitring [-v | --verbose] [-d | --dry-run] [--to-keychain=<path>] keychain-file ...\n");
 }
 
 SecKeychainRef SROpenKeychain(char* path) {
@@ -217,6 +217,8 @@ void SRCopyItemsToKeychain(CFArrayRef items, SecKeychainRef keychain, int verbos
     SecKeychainItemRef item = (SecKeychainItemRef)CFDictionaryGetValue(info, kSecValueRef);
     if (!dryRun) {
       SRCopyKeychainItemToKeychain(item, keychain);
+    } else {
+      fprintf(stderr, "\n");
     }
   }
 }

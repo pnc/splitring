@@ -23,7 +23,7 @@ heart's desire.
 
 # Usage
 
-    usage: splitring [--verbose] [--dry-run]
+    usage: splitring [-v | --verbose] [-d | --dry-run]
            [--to-keychain=<path>] keychain-file ...
     
     --verbose             Explain what's happening.
@@ -45,3 +45,24 @@ heart's desire.
     Copying item named 'Safari Forms AutoFill' (2 of 4)... copied
     Copying item named 'skype' (3 of 4)... copied
     Copying item named 'photosmart' (4 of 4)... copied
+
+# Building
+
+To build `splitring`, you can use Xcode (open splitring.xcodeproj),
+the `xcodebuild` tool, or `make`:
+
+    $ make
+    $ ./splitring
+
+If you don't `codesign` the binary, you'll see an extra-scary message from OS X:
+
+> "The authenticity of "splitring" cannot be verified. Do you want to
+>  allow access to this item?"
+
+This doesn't affect operation negatively.
+
+To codesign, obtain or generate a certificate by following
+[these instructions](https://developer.apple.com/library/mac/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html#//apple_ref/doc/uid/TP40005929-CH4-SW1)
+and then run:
+
+    $ codesign -s 'Name of Your Identity' splitring

@@ -52,7 +52,7 @@
 			isa = PBXGroup;
 			children = (
 				539116E917F9033000E535BC /* Security.framework */,
-				539116DF17F8FF1B00E535BC /* splitring */,
+				539116DF17F8FF1B00E535BC /* src */,
 				539116DC17F8FF1B00E535BC /* Frameworks */,
 				539116DB17F8FF1A00E535BC /* Products */,
 			);
@@ -74,14 +74,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		539116DF17F8FF1B00E535BC /* splitring */ = {
+		539116DF17F8FF1B00E535BC /* src */ = {
 			isa = PBXGroup;
 			children = (
 				539116E017F8FF1B00E535BC /* main.c */,
 				4AD459EC17FCD55100934B17 /* Info.plist */,
 				539116E217F8FF1B00E535BC /* splitring.1 */,
 			);
-			path = splitring;
+			path = src;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -204,30 +204,26 @@
 		539116E717F8FF1B00E535BC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Phillip Calvin Fake Code Signing";
 				OTHER_LDFLAGS = (
 					"-sectcreate",
 					__TEXT,
 					__info_plist,
-					splitring/Info.plist,
+					src/Info.plist,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "";
 			};
 			name = Debug;
 		};
 		539116E817F8FF1B00E535BC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Phillip Calvin Fake Code Signing";
 				OTHER_LDFLAGS = (
 					"-sectcreate",
 					__TEXT,
 					__info_plist,
-					splitring/Info.plist,
+					src/Info.plist,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "";
 			};
 			name = Release;
 		};
