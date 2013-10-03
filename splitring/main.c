@@ -9,42 +9,91 @@
 #include <CoreFoundation/CoreFoundation.h>
 #import <Security/Security.h>
 #import <getopt.h>
+#import <sysexits.h>
 
 void SRHandleError(OSStatus status, int requireSuccess);
 char * SRCFStringCopyUTF8String(CFStringRef aString);
-void SRCopyKeychainItemsToKeychain(CFArrayRef items, SecKeychainRef keychain);
 void SRListMatchingItems(CFDictionaryRef query);
-void SRListItems(CFArrayRef query);
 CFArrayRef SRCopyItems(CFArrayRef keychains, CFArrayRef classes);
+void SRCopyItemsToKeychain(CFArrayRef items, SecKeychainRef keychain, int verbose);
 void SRCopyKeychainItemToKeychain(SecKeychainItemRef item, SecKeychainRef keychain);
+SecKeychainRef SROpenKeychain(char* path);
+void SRPrintUsage();
 
 static CFStringRef kSRAttrClass = CFSTR("SRClass");
 
-int main(int argc, const char * argv[])
-{
-  char *path = "/Users/phil/Nebula/Nebula Legacy.keychain";
+int main(int argc, char * const argv[]) {
+  int verbose = 0;
+  int dryRun = 0;
+  char *toKeychainPath = NULL;
 
-  SecKeychainRef keychain = NULL;
-  OSStatus status = SecKeychainOpen(path, &keychain);
-  SRHandleError(status, true);
+  struct option longopts[] = {
+    { "dry-run",      no_argument,         &dryRun,     1   },
+    { "to-keychain",  required_argument,   NULL,        'k' },
+    { "verbose",      no_argument,         &verbose,    1   },
+    { NULL,           0,                   NULL,        0   }
+  };
 
-  // Unlock it; might not need to do this
-  status = SecKeychainUnlock(keychain, 0, NULL, FALSE);
-  SRHandleError(status, true);
+  int ch;
+  while ((ch = getopt_long(argc, argv, "dk:v", longopts, NULL)) != -1) {
+    switch (ch) {
+      case 'k':
+        toKeychainPath = optarg;
+        break;
+      case 'd':
+        dryRun = 1;
+        break;
+      case 'v':
+        verbose = 1;
+        break;
+      default:
+        SRPrintUsage();
+        exit(EX_USAGE);
+    }
+  }
+  argc -= optind;
+  argv += optind;
+
+  if (!argc) {
+    SRPrintUsage();
+    exit(EX_USAGE);
+  }
 
   CFMutableArrayRef keychains = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
-  CFArrayAppendValue(keychains, keychain);
 
-  // Open the default keychain and print its path
-  SecKeychainRef defaultKeychain = NULL;
-  status = SecKeychainCopyDefault(&defaultKeychain);
-  SRHandleError(status, true);
-  status = SecKeychainUnlock(defaultKeychain, 0, NULL, FALSE);
-  SRHandleError(status, true);
-  UInt32 bufferSize = 512;
-  char defaultKeychainPath[512];
-  SecKeychainGetPath(defaultKeychain, &bufferSize, defaultKeychainPath);
-  printf("Default keychain path: %s", defaultKeychainPath);
+  // Iterate the passed keychain paths, opening each one
+  for (int i = 0; i < argc; i++) {
+    char* path = argv[i];
+    SecKeychainRef keychain = SROpenKeychain(path);
+    CFArrayAppendValue(keychains, keychain);
+    CFRelease(keychain);
+  }
+
+  // Unlock each of the keychains
+  for (int i = 0; i < CFArrayGetCount(keychains); i++) {
+    SecKeychainRef keychain = (SecKeychainRef)CFArrayGetValueAtIndex(keychains, i);
+    // Unlock it; might not need to do this
+    if (verbose) {
+      UInt32 bufferSize = 4096;
+      char keychainPath[bufferSize];
+      SecKeychainGetPath(keychain, &bufferSize, keychainPath);
+      fprintf(stderr, "Unlocking keychain at path: %s\n", keychainPath);
+    }
+    OSStatus status = SecKeychainUnlock(keychain, 0, NULL, FALSE);
+    SRHandleError(status, true);
+  }
+
+  SecKeychainRef targetKeychain = NULL;
+  if (toKeychainPath) {
+    // Import to the specified keychain
+    targetKeychain = SROpenKeychain(toKeychainPath);
+  } else {
+    // Import to the default keychain if one wasn't specified
+    OSStatus status = SecKeychainCopyDefault(&targetKeychain);
+    SRHandleError(status, true);
+    status = SecKeychainUnlock(targetKeychain, 0, NULL, FALSE);
+    SRHandleError(status, true);
+  }
 
   // Search for all items
   CFMutableArrayRef classes = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
@@ -56,14 +105,41 @@ int main(int argc, const char * argv[])
 
   CFArrayRef items = SRCopyItems(keychains, classes);
 
-  SRListItems(items);
-  //SRCopyItemsToKeychain(items, defaultKeychain);
+  if (verbose) {
+    UInt32 bufferSize = 4096;
+    char defaultKeychainPath[bufferSize];
+    SecKeychainGetPath(targetKeychain, &bufferSize, defaultKeychainPath);
+    fprintf(stderr, "Importing %li items to keychain at path: %s\n",
+            CFArrayGetCount(items),
+            defaultKeychainPath);
+  }
+
+  if (!dryRun) {
+    SRCopyItemsToKeychain(items, targetKeychain, verbose);
+  }
 
   CFRelease(items);
-  CFRelease(defaultKeychain);
+  CFRelease(targetKeychain);
   CFRelease(keychains);
-  CFRelease(keychain);
   return 0;
+}
+
+void SRPrintUsage() {
+  fprintf(stderr, "usage: splitring [--verbose] [--dry-run] [--to-keychain=<path>] keychain-file ...");
+}
+
+SecKeychainRef SROpenKeychain(char* path) {
+  SecKeychainRef keychain = NULL;
+  OSStatus status = SecKeychainOpen(path, &keychain);
+  SecKeychainStatus keychainStatus = 0;
+  status = SecKeychainGetStatus(keychain, &keychainStatus);
+  if (status == 0) {
+  } else {
+    fprintf(stderr, "Unable to open keychain at path %s: ", path);
+    SRHandleError(status, false);
+    exit(EX_IOERR);
+  }
+  return keychain;
 }
 
 CFArrayRef SRCopyItems(CFArrayRef keychains, CFArrayRef classes) {
@@ -115,13 +191,14 @@ char * SRCFStringCopyUTF8String(CFStringRef aString) {
   return NULL;
 }
 
-void SRListItems(CFArrayRef items) {
+void SRCopyItemsToKeychain(CFArrayRef items, SecKeychainRef keychain, int verbose) {
+  // Copy these items into the provided keychain
   for (int i = 0; i < CFArrayGetCount(items); i++) {
     CFDictionaryRef info = CFArrayGetValueAtIndex(items, i);
     CFTypeRef class = CFDictionaryGetValue(info, kSRAttrClass);
     CFStringRef label = CFDictionaryGetValue(info, kSecAttrLabel);
 
-    
+    // Form a printable name for the item
     char *cLabel = SRCFStringCopyUTF8String(label);
     char *cClass = "(unknown)";
     if (CFStringCompare(class, kSecClassGenericPassword, 0) == 0) {
@@ -136,24 +213,11 @@ void SRListItems(CFArrayRef items) {
       cClass = "Key";
     }
 
-    printf("%s '%s'\n", cClass, cLabel);
+    fprintf(stderr, "Copying item named '%s' (%i of %li)... ", cLabel, i + 1, CFArrayGetCount(items));
     free(cLabel);
-  }
-}
 
-void SRCopyMatchingItemsToKeychain(CFArrayRef items, SecKeychainRef keychain) {
-  // Copy these items into the provided keychain
-  for (int i = 0; i < CFArrayGetCount(items); i++) {
-    CFDictionaryRef info = CFArrayGetValueAtIndex(items, i);
-    CFStringRef label = CFDictionaryGetValue(info, kSecAttrLabel);
-
-    char *cLabel = SRCFStringCopyUTF8String(label);
-
-    printf("Copying item named '%s'… ", cLabel);
     SecKeychainItemRef item = (SecKeychainItemRef)CFDictionaryGetValue(info, kSecValueRef);
     SRCopyKeychainItemToKeychain(item, keychain);
-    printf("%li items to go.\n", CFArrayGetCount(items) - i - 1);
-    free(cLabel);
   }
 }
 
@@ -166,14 +230,11 @@ void SRCopyKeychainItemToKeychain(SecKeychainItemRef item, SecKeychainRef keycha
     status = SecKeychainItemCreateCopy(item, keychain, accessPolicy, &newItem);
     SRHandleError(status, false);
     if (0 == status) {
-      printf("done!\n");
+      fprintf(stderr, "copied.\n");
       CFRelease(newItem);
-    } else {
-      printf("failed.\n");
     }
     CFRelease(accessPolicy);
   }
-
 }
 
 void SRHandleError(OSStatus status, int requireSuccess) {
@@ -182,7 +243,7 @@ void SRHandleError(OSStatus status, int requireSuccess) {
     CFShow(errorMessage);
     CFRelease(errorMessage);
     if (requireSuccess) {
-      exit(15);
+      exit(EX_NOPERM);
     }
   }
 }
