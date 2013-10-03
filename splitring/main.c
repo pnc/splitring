@@ -18,6 +18,8 @@ void SRListItems(CFArrayRef query);
 CFArrayRef SRCopyItems(CFArrayRef keychains, CFArrayRef classes);
 void SRCopyKeychainItemToKeychain(SecKeychainItemRef item, SecKeychainRef keychain);
 
+static CFStringRef kSRAttrClass = CFSTR("SRClass");
+
 int main(int argc, const char * argv[])
 {
   char *path = "/Users/phil/Nebula/Nebula Legacy.keychain";
@@ -82,7 +84,13 @@ CFArrayRef SRCopyItems(CFArrayRef keychains, CFArrayRef classes) {
     CFArrayRef items = NULL;
     OSStatus status = SecItemCopyMatching(query, (CFTypeRef *)&items);
     SRHandleError(status, true);
-    CFArrayAppendArray(allItems, items, CFRangeMake(0, CFArrayGetCount(items)));
+    for (int j = 0; j < CFArrayGetCount(items); j++) {
+      CFDictionaryRef properties = CFArrayGetValueAtIndex(items, j);
+      CFMutableDictionaryRef newProperties = CFDictionaryCreateMutableCopy(NULL, 0, properties);
+      CFDictionarySetValue(newProperties, kSRAttrClass, class);
+      CFArrayAppendValue(allItems, newProperties);
+      CFRelease(newProperties);
+    }
     CFRelease(items);
   }
   CFRelease(query);
@@ -90,8 +98,6 @@ CFArrayRef SRCopyItems(CFArrayRef keychains, CFArrayRef classes) {
   return allItems;
 }
 
-// LEAKS
-// I DON'T EVEN CARE
 char * SRCFStringCopyUTF8String(CFStringRef aString) {
   if (aString == NULL) {
     return NULL;
@@ -112,10 +118,26 @@ char * SRCFStringCopyUTF8String(CFStringRef aString) {
 void SRListItems(CFArrayRef items) {
   for (int i = 0; i < CFArrayGetCount(items); i++) {
     CFDictionaryRef info = CFArrayGetValueAtIndex(items, i);
-    CFStringRef label = CFDictionaryGetValue(info, kSecAttrDescription);
+    CFTypeRef class = CFDictionaryGetValue(info, kSRAttrClass);
+    CFStringRef label = CFDictionaryGetValue(info, kSecAttrLabel);
 
+    
     char *cLabel = SRCFStringCopyUTF8String(label);
-    printf("'%s': \n", cLabel);
+    char *cClass = "(unknown)";
+    if (CFStringCompare(class, kSecClassGenericPassword, 0) == 0) {
+      cClass = "Generic Password";
+    } else if (CFStringCompare(class, kSecClassInternetPassword, 0) == 0) {
+      cClass = "Internet Password";
+    } else if (CFStringCompare(class, kSecClassCertificate, 0) == 0) {
+      cClass = "Certificate";
+    } else if (CFStringCompare(class, kSecClassIdentity, 0) == 0) {
+      cClass = "Identity";
+    } else if (CFStringCompare(class, kSecClassKey, 0) == 0) {
+      cClass = "Key";
+    }
+
+    printf("%s '%s'\n", cClass, cLabel);
+    free(cLabel);
   }
 }
 
@@ -131,6 +153,7 @@ void SRCopyMatchingItemsToKeychain(CFArrayRef items, SecKeychainRef keychain) {
     SecKeychainItemRef item = (SecKeychainItemRef)CFDictionaryGetValue(info, kSecValueRef);
     SRCopyKeychainItemToKeychain(item, keychain);
     printf("%li items to go.\n", CFArrayGetCount(items) - i - 1);
+    free(cLabel);
   }
 }
 
