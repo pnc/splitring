@@ -28,7 +28,7 @@ heart's desire.
     
     --verbose             Explain what's happening.
     --dry-run             Don't actually import any items,
-                            just show what would be done
+                            just show what would be done.
     --to-keychain=<path>  Import all items to the keychain
                             located at <path>. By default,
                             this is the current default
