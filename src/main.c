@@ -2,14 +2,11 @@
 //  main.c
 //  splitring
 //
-//  Created by Phil Calvin (Eleos) on 9/29/13.
-//  Copyright (c) 2013 Phil Calvin. All rights reserved.
-//
 
 #include <CoreFoundation/CoreFoundation.h>
-#import <Security/Security.h>
-#import <getopt.h>
-#import <sysexits.h>
+#include <Security/Security.h>
+#include <getopt.h>
+#include <sysexits.h>
 
 void SRHandleError(OSStatus status, int requireSuccess);
 char * SRCFStringCopyUTF8String(CFStringRef aString);
