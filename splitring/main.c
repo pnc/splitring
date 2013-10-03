@@ -15,7 +15,7 @@ void SRHandleError(OSStatus status, int requireSuccess);
 char * SRCFStringCopyUTF8String(CFStringRef aString);
 void SRListMatchingItems(CFDictionaryRef query);
 CFArrayRef SRCopyItems(CFArrayRef keychains, CFArrayRef classes);
-void SRCopyItemsToKeychain(CFArrayRef items, SecKeychainRef keychain, int verbose);
+void SRCopyItemsToKeychain(CFArrayRef items, SecKeychainRef keychain, int verbose, int dryRun);
 void SRCopyKeychainItemToKeychain(SecKeychainItemRef item, SecKeychainRef keychain);
 SecKeychainRef SROpenKeychain(char* path);
 void SRPrintUsage();
@@ -114,9 +114,7 @@ int main(int argc, char * const argv[]) {
             defaultKeychainPath);
   }
 
-  if (!dryRun) {
-    SRCopyItemsToKeychain(items, targetKeychain, verbose);
-  }
+  SRCopyItemsToKeychain(items, targetKeychain, verbose, dryRun);
 
   CFRelease(items);
   CFRelease(targetKeychain);
@@ -191,7 +189,7 @@ char * SRCFStringCopyUTF8String(CFStringRef aString) {
   return NULL;
 }
 
-void SRCopyItemsToKeychain(CFArrayRef items, SecKeychainRef keychain, int verbose) {
+void SRCopyItemsToKeychain(CFArrayRef items, SecKeychainRef keychain, int verbose, int dryRun) {
   // Copy these items into the provided keychain
   for (int i = 0; i < CFArrayGetCount(items); i++) {
     CFDictionaryRef info = CFArrayGetValueAtIndex(items, i);
@@ -217,7 +215,9 @@ void SRCopyItemsToKeychain(CFArrayRef items, SecKeychainRef keychain, int verbos
     free(cLabel);
 
     SecKeychainItemRef item = (SecKeychainItemRef)CFDictionaryGetValue(info, kSecValueRef);
-    SRCopyKeychainItemToKeychain(item, keychain);
+    if (!dryRun) {
+      SRCopyKeychainItemToKeychain(item, keychain);
+    }
   }
 }
 
