@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		539116DE17F8FF1B00E535BC /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 539116DD17F8FF1B00E535BC /* CoreFoundation.framework */; };
 		539116E117F8FF1B00E535BC /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 539116E017F8FF1B00E535BC /* main.c */; };
-		539116E317F8FF1B00E535BC /* splitring.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 539116E217F8FF1B00E535BC /* splitring.1 */; };
 		539116EA17F9033000E535BC /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 539116E917F9033000E535BC /* Security.framework */; };
 /* End PBXBuildFile section */
 
@@ -20,7 +19,6 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
-				539116E317F8FF1B00E535BC /* splitring.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -31,7 +29,6 @@
 		539116DA17F8FF1A00E535BC /* splitring */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = splitring; sourceTree = BUILT_PRODUCTS_DIR; };
 		539116DD17F8FF1B00E535BC /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		539116E017F8FF1B00E535BC /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		539116E217F8FF1B00E535BC /* splitring.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = splitring.1; sourceTree = "<group>"; };
 		539116E917F9033000E535BC /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -79,7 +76,6 @@
 			children = (
 				539116E017F8FF1B00E535BC /* main.c */,
 				4AD459EC17FCD55100934B17 /* Info.plist */,
-				539116E217F8FF1B00E535BC /* splitring.1 */,
 			);
 			path = src;
 			sourceTree = "<group>";
