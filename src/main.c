@@ -57,7 +57,7 @@ int main(int argc, char * const argv[]) {
   argv += optind;
 
   if (version) {
-    fprintf(stderr, "splitring 1.0\nCopyright (C) 2013 Phil Calvin\n");
+    fprintf(stderr, "splitring 1.1\nCopyright (C) 2013 Phil Calvin\n");
     exit(0);
   }
 

@@ -23,10 +23,11 @@ heart's desire.
 
 # Usage
 
-    usage: splitring [-v | --verbose] [-d | --dry-run]
+    usage: splitring [-v | --verbose] [--version] [-d | --dry-run]
            [--to-keychain=<path>] keychain-file ...
     
     --verbose             Explain what's happening.
+    --version             Print the version of the program
     --dry-run             Don't actually import any items,
                             just show what would be done.
     --to-keychain=<path>  Import all items to the keychain
@@ -38,7 +39,7 @@ heart's desire.
 # Example
 
     # Import all the passwords in old.keychain into the login keychain.
-    $ ./splitring /Users/phil/old.keychain
+    $ ./splitring -v old.keychain
     Unlocking keychain at path: /Users/phil/old.keychain
     Importing 4 items to keychain at path: /Users/phil/Library/Keychains/login.keychain
     Copying item named 'AppleID' (1 of 4)... The specified item already exists in the keychain.
