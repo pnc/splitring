@@ -22,12 +22,14 @@ static CFStringRef kSRAttrClass = CFSTR("SRClass");
 int main(int argc, char * const argv[]) {
   int verbose = 0;
   int dryRun = 0;
+  int version = 0;
   char *toKeychainPath = NULL;
 
   struct option longopts[] = {
     { "dry-run",      no_argument,         &dryRun,     1   },
     { "to-keychain",  required_argument,   NULL,        'k' },
     { "verbose",      no_argument,         &verbose,    1   },
+    { "version",      no_argument,         &version,       1   },
     { NULL,           0,                   NULL,        0   }
   };
 
@@ -43,6 +45,9 @@ int main(int argc, char * const argv[]) {
       case 'v':
         verbose = 1;
         break;
+      case 0:
+        // Handle long-only options
+        break;
       default:
         SRPrintUsage();
         exit(EX_USAGE);
@@ -50,6 +55,11 @@ int main(int argc, char * const argv[]) {
   }
   argc -= optind;
   argv += optind;
+
+  if (version) {
+    fprintf(stderr, "splitring 1.0\nCopyright (C) 2013 Phil Calvin\n");
+    exit(0);
+  }
 
   if (!argc) {
     SRPrintUsage();
