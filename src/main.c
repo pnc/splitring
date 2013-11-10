@@ -87,8 +87,16 @@ int main(int argc, char * const argv[]) {
 
   SecKeychainRef targetKeychain = NULL;
   if (toKeychainPath) {
-    // Import to the specified keychain
-    targetKeychain = SROpenKeychain(toKeychainPath);
+    // Convert this to a canonical path
+    char* canonicalPath = realpath(toKeychainPath, NULL);
+    if (canonicalPath) {
+      // Import to the specified keychain
+      targetKeychain = SROpenKeychain(canonicalPath);
+      free(canonicalPath);
+    } else {
+      fprintf(stderr, "Unable to find keychain: %s\n", toKeychainPath);
+      exit(EX_IOERR);
+    }
   } else {
     // Import to the default keychain if one wasn't specified
     OSStatus status = SecKeychainCopyDefault(&targetKeychain);
