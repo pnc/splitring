@@ -47,6 +47,14 @@ heart's desire.
     Copying item named 'skype' (3 of 4)... copied
     Copying item named 'photosmart' (4 of 4)... copied
 
+# Installing
+
+If you have [Homebrew](http://brew.sh/) installed, you can just run:
+
+    brew install https://raw.github.com/pnc/splitring/master/dist/splitring.rb
+
+That's all there is to it! Just run `splitring` from your terminal.
+
 # Building
 
 To build `splitring`, you can use Xcode (open splitring.xcodeproj),
