@@ -167,15 +167,18 @@ CFArrayRef SRCopyItems(CFArrayRef keychains, CFArrayRef classes) {
 
     CFArrayRef items = NULL;
     OSStatus status = SecItemCopyMatching(query, (CFTypeRef *)&items);
-    SRHandleError(status, true);
-    for (int j = 0; j < CFArrayGetCount(items); j++) {
-      CFDictionaryRef properties = CFArrayGetValueAtIndex(items, j);
-      CFMutableDictionaryRef newProperties = CFDictionaryCreateMutableCopy(NULL, 0, properties);
-      CFDictionarySetValue(newProperties, kSRAttrClass, class);
-      CFArrayAppendValue(allItems, newProperties);
-      CFRelease(newProperties);
+    // If there are not results, that's fine; this class is just empty
+    if (errSecItemNotFound != status) {
+      SRHandleError(status, true);
+      for (int j = 0; j < CFArrayGetCount(items); j++) {
+        CFDictionaryRef properties = CFArrayGetValueAtIndex(items, j);
+        CFMutableDictionaryRef newProperties = CFDictionaryCreateMutableCopy(NULL, 0, properties);
+        CFDictionarySetValue(newProperties, kSRAttrClass, class);
+        CFArrayAppendValue(allItems, newProperties);
+        CFRelease(newProperties);
+      }
+      CFRelease(items);
     }
-    CFRelease(items);
   }
   CFRelease(query);
 
